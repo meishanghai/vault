@@ -1,0 +1,72 @@
+Debug my existing Android APK vulnerability detector because its supposed dynamic scan completes in only a few seconds.
+
+Do not redesign the UI first. Inspect the actual backend implementation and trace the entire scan lifecycle.
+
+Step 1: Trace the execution path
+
+Identify the exact function called when the user clicks "Start Dynamic Scan". Follow every function, API request, subprocess, and background job until the scan is marked completed.
+
+Determine whether the implementation:
+
+Only retrieves or parses a MobSF static report.
+Starts a MobSF dynamic-analysis request but never waits for execution.
+Installs an APK on an Android emulator.
+Successfully launches the application.
+Collects runtime evidence.
+Performs actual UI exploration and security tests.
+Marks the job completed prematurely.
+
+Report the exact files and functions responsible.  
+
+Step 2: Add real execution-state tracking
+
+Implement these backend states:
+
+QUEUED VALIDATING_APK PROVISIONING_DEVICE INSTALLING_APK LAUNCHING_APP OBSERVING_RUNTIME EXPLORING_UI RUNNING_SECURITY_TESTS COLLECTING_EVIDENCE CORRELATING_FINDINGS COMPLETED FAILED CANCELLED
+
+Only enter a state after its corresponding operation has actually started. Mark it completed only after the operation succeeds. Never simulate progress or invent events.
+
+Step 3: Verify the Android execution environment
+
+Check whether Android SDK tools, ADB, an available emulator, and required instrumentation dependencies are configured.
+
+Run real availability checks. Verify the device connection, retrieve its API level, and check installation and launch results.
+
+If the environment is unavailable, show a specific error such as "No Android emulator connected." Do not return a successful dynamic scan.
+
+Step 4: Implement runtime evidence collection
+
+For a successfully launched test APK, collect timestamped, sanitized logcat output, process status, crashes, observed network events where supported, and UI exploration results.
+
+Record the commands or instrumentation operations used, their exit codes, and their outputs. Do not claim that network traffic or application behavior was tested unless evidence exists.
+
+Step 5: Add honest coverage reporting
+
+Display:
+
+APK installation: passed, failed, or not attempted.
+Application launch: passed, failed, or not attempted.
+Runtime observation duration.
+UI screens visited and actions executed.
+Security tests attempted and completed.
+Runtime evidence collected.
+Tests skipped and reasons.
+Instrumentation limitations.
+
+Do not treat static findings as dynamic findings. Do not classify untested vulnerabilities as safe.
+
+Step 6: Fix premature completion
+
+Find every path that sets the scan status to completed. Ensure completion requires the actual execution pipeline to finish, with failures and partial scans represented honestly.
+
+Do not impose an arbitrary minimum scan duration. Use operation results, executed test counts, and evidence to establish whether the scan did meaningful work.
+
+Step 7: Test the fix
+
+Test a valid APK, an invalid APK, a missing emulator, an installation failure, a launch crash, a timeout, and a successful runtime session.
+
+Run the tests where the environment permits. Report the real results and identify any tests that could not be executed.
+
+Preserve my existing application and MobSF integration. Implement the changes in the actual backend and frontend rather than creating a mock dashboard.
+
+Start by tracing the existing scan handler and explaining why it finishes so quickly. Then fix the underlying problem.
